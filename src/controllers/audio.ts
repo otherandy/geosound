@@ -1,4 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
+import PocketBase from "pocketbase";
+
+const pb = new PocketBase(process.env.POCKETBASE_URL);
 
 export async function uploadAudio(
   req: Request,
@@ -13,7 +16,16 @@ export async function getAudio(
   res: Response,
   next: NextFunction
 ) {
-  res.status(501).send({ error: "Not yet implemented" });
+  const records = await pb.collection("audio").getFullList({
+    sort: "-created",
+  });
+
+  if (!records) {
+    res.status(404).send({ error: "No records found" });
+    return;
+  }
+
+  res.send(records);
 }
 
 export async function getAudioById(
@@ -21,7 +33,14 @@ export async function getAudioById(
   res: Response,
   next: NextFunction
 ) {
-  res.status(501).send({ error: "Not yet implemented" });
+  const record = await pb.collection("audio").getOne(req.params.id);
+
+  if (!record) {
+    res.status(404).send({ error: "Record not found" });
+    return;
+  }
+
+  res.send(record);
 }
 
 export async function searchAudio(
@@ -45,5 +64,12 @@ export async function deleteAudio(
   res: Response,
   next: NextFunction
 ) {
-  res.status(501).send({ error: "Not yet implemented" });
+  const success = await pb.collection("audio").delete(req.params.id);
+
+  if (!success) {
+    res.status(404).send({ error: "Record not found" });
+    return;
+  }
+
+  res.send({ success: true });
 }
