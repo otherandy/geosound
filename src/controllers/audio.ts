@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import type { UploadedFile } from "express-fileupload";
 
+import { distanceBetweenCoordinates } from "../utils";
+
 const pb = new PocketBase(process.env.POCKETBASE_URL);
 
 export async function uploadAudio(
@@ -45,16 +47,63 @@ export async function getAudio(
   res: Response,
   next: NextFunction
 ) {
+if (Object.keys(req.query).length > 0) {
+    const { latitude, longitude, radius } = req.query;
+
+    if (!latitude || !longitude || !radius) {
+      res.status(400).send({
+        error: "Latitude, longitude, and radius required for search.",
+      });
+      return;
+    }
+
+    const lat = parseFloat(latitude as string);
+    const lon = parseFloat(longitude as string);
+    const rad = parseFloat(radius as string);
+
+    const { status, data } = await searchAudio(lat, lon, rad);
+    res.status(status).send(data);
+    return;
+  }
+
   const records = await pb.collection("audio").getFullList({
     sort: "-created",
   });
 
   if (!records) {
-    res.status(404).send({ error: "No records found" });
+    res.status(404).send({ error: "No records found." });
     return;
   }
 
   res.send(records);
+}
+
+async function searchAudio(
+  latitude: number,
+  longitude: number,
+  radius: number
+) {
+  const records = await pb.collection("audio").getFullList();
+
+  if (!records) {
+    return { status: 404, data: { error: "No records found." } };
+  }
+
+  const results = records.filter((record) => {
+    const recordLatitude = parseFloat(record.latitude);
+    const recordLongitude = parseFloat(record.longitude);
+
+    const distance = distanceBetweenCoordinates(
+      latitude,
+      longitude,
+      recordLatitude,
+      recordLongitude
+    );
+
+    return distance <= radius;
+  });
+
+  return { status: 200, data: results };
 }
 
 export async function getAudioById(
@@ -65,19 +114,11 @@ export async function getAudioById(
   const record = await pb.collection("audio").getOne(req.params.id);
 
   if (!record) {
-    res.status(404).send({ error: "Record not found" });
+    res.status(404).send({ error: "Record not found." });
     return;
   }
 
   res.send(record);
-}
-
-export async function searchAudio(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  res.status(501).send({ error: "Not yet implemented" });
 }
 
 export async function updateAudio(
@@ -85,7 +126,7 @@ export async function updateAudio(
   res: Response,
   next: NextFunction
 ) {
-  res.status(501).send({ error: "Not yet implemented" });
+  res.status(501).send({ error: "Not yet implemented." });
 }
 
 export async function deleteAudio(
