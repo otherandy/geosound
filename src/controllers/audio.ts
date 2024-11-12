@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import PocketBase from "pocketbase";
+import type { UploadedFile } from "express-fileupload";
 
 const pb = new PocketBase(process.env.POCKETBASE_URL);
 
@@ -8,7 +8,36 @@ export async function uploadAudio(
   res: Response,
   next: NextFunction
 ) {
-  res.status(501).send({ error: "Not yet implemented" });
+  const file = req.files?.audio as UploadedFile;
+
+  if (!file) {
+    res.status(400).send({ error: "No file uploaded." });
+    return;
+  }
+
+  if (!file.mimetype.includes("audio")) {
+    res.status(400).send({ error: "Invalid file type." });
+    return;
+  }
+
+  const { latitude, longitude } = req.body;
+
+  if (!latitude || !longitude) {
+    res.status(400).send({ error: "Latitude and longitude required." });
+    return;
+  }
+
+  const tags = req.body.tags as string[];
+  
+  const data = {
+    file: new File([file.data], file.name),
+    latitude: parseFloat(latitude),
+    longitude: parseFloat(longitude),
+    tags: tags === undefined ? [] : tags,
+  };
+
+  const record = await pb.collection("audio").create(data);
+  res.send(record);
 }
 
 export async function getAudio(
