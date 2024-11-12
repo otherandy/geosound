@@ -48,21 +48,7 @@ export async function getAudio(
   next: NextFunction
 ) {
 if (Object.keys(req.query).length > 0) {
-    const { latitude, longitude, radius } = req.query;
-
-    if (!latitude || !longitude || !radius) {
-      res.status(400).send({
-        error: "Latitude, longitude, and radius required for search.",
-      });
-      return;
-    }
-
-    const lat = parseFloat(latitude as string);
-    const lon = parseFloat(longitude as string);
-    const rad = parseFloat(radius as string);
-
-    const { status, data } = await searchAudio(lat, lon, rad);
-    res.status(status).send(data);
+    searchAudio(req, res, next);
     return;
   }
 
@@ -78,15 +64,21 @@ if (Object.keys(req.query).length > 0) {
   res.send(records);
 }
 
-async function searchAudio(
-  latitude: number,
-  longitude: number,
-  radius: number
-) {
+async function searchAudio(req: Request, res: Response, next: NextFunction) {
+  const { latitude, longitude, radius } = req.query;
+
+  if (!latitude || !longitude || !radius) {
+    res.status(400).send({
+      error: "Latitude, longitude, and radius required for search.",
+    });
+    return;
+  }
+
   const records = await pb.collection("audio").getFullList();
 
   if (!records) {
-    return { status: 404, data: { error: "No records found." } };
+    res.status(404).send({ error: "No records found." });
+    return;
   }
 
   const results = records.filter((record) => {
@@ -94,16 +86,21 @@ async function searchAudio(
     const recordLongitude = parseFloat(record.longitude);
 
     const distance = distanceBetweenCoordinates(
-      latitude,
-      longitude,
+      parseFloat(latitude as string),
+      parseFloat(longitude as string),
       recordLatitude,
       recordLongitude
     );
 
-    return distance <= radius;
+    return distance <= parseFloat(radius as string);
   });
 
-  return { status: 200, data: results };
+  if (results.length === 0) {
+    res.status(404).send({ error: "No records found." });
+    return;
+  }
+
+  res.send(results);
 }
 
 export async function getAudioById(
