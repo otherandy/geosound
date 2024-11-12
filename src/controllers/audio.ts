@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import type { UploadedFile } from "express-fileupload";
+import PocketBase, { ClientResponseError } from "pocketbase";
 
 import { distanceBetweenCoordinates } from "../utils";
 
@@ -30,7 +31,7 @@ export async function uploadAudio(
   }
 
   const tags = req.body.tags as string[];
-  
+
   const data = {
     file: new File([file.data], file.name),
     latitude: parseFloat(latitude),
@@ -47,7 +48,7 @@ export async function getAudio(
   res: Response,
   next: NextFunction
 ) {
-if (Object.keys(req.query).length > 0) {
+  if (Object.keys(req.query).length > 0) {
     searchAudio(req, res, next);
     return;
   }
@@ -150,12 +151,28 @@ export async function deleteAudio(
   res: Response,
   next: NextFunction
 ) {
-  const success = await pb.collection("audio").delete(req.params.id);
+  let result = false;
 
-  if (!success) {
-    res.status(404).send({ error: "Record not found" });
+  try {
+    result = await pb.collection("audio").delete(req.params.id, {
+      headers: {
+        Authorization: req.headers.authorization as string,
+      },
+    });
+  } catch (error) {
+    if (error instanceof ClientResponseError) {
+      res.status(error.status).send({ error: error.message });
+      return;
+    }
+
+    res.status(500).send({ error: "Internal server error." });
     return;
   }
 
-  res.send({ success: true });
+  if (!result) {
+    res.status(404).send({ error: "Record not found." });
+    return;
+  }
+
+  res.send({ message: "Record deleted." });
 }
