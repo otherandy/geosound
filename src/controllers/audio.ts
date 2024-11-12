@@ -108,6 +108,11 @@ export async function getAudioById(
   res: Response,
   next: NextFunction
 ) {
+  if (req.query.download) {
+    downloadAudio(req, res, next);
+    return;
+  }
+
   const record = await pb.collection("audio").getOne(req.params.id);
 
   if (!record) {
@@ -116,6 +121,20 @@ export async function getAudioById(
   }
 
   res.send(record);
+}
+
+async function downloadAudio(req: Request, res: Response, next: NextFunction) {
+  const { id } = req.params;
+  const record = await pb.collection("audio").getOne(id);
+
+  if (!record) {
+    res.status(404).send({ error: "Record not found." });
+    return;
+  }
+
+  const url = `${process.env.POCKETBASE_URL}/api/files/audio/${id}/${record.file}`;
+
+  res.redirect(url);
 }
 
 export async function updateAudio(
