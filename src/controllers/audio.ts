@@ -39,7 +39,19 @@ export async function uploadAudio(
     tags: tags === undefined ? [] : tags,
   };
 
-  const record = await pb.collection("audio").create(data);
+  let record;
+  try {
+    record = await pb.collection("audio").create(data);
+  } catch (error) {
+    if (error instanceof ClientResponseError) {
+      res.status(error.status).send({ error: error.message });
+      return;
+    }
+
+    res.status(500).send({ error: "Internal server error." });
+    return;
+  }
+
   res.send(record);
 }
 
@@ -53,9 +65,20 @@ export async function getAudio(
     return;
   }
 
-  const records = await pb.collection("audio").getFullList({
-    sort: "-created",
-  });
+  let records;
+  try {
+    records = await pb.collection("audio").getFullList({
+      sort: "-created",
+    });
+  } catch (error) {
+    if (error instanceof ClientResponseError) {
+      res.status(error.status).send({ error: error.message });
+      return;
+    }
+
+    res.status(500).send({ error: "Internal server error." });
+    return;
+  }
 
   if (!records) {
     res.status(404).send({ error: "No records found." });
@@ -75,7 +98,20 @@ async function searchAudio(req: Request, res: Response, next: NextFunction) {
     return;
   }
 
-  const records = await pb.collection("audio").getFullList();
+  let records;
+  try {
+    records = await pb.collection("audio").getFullList({
+      sort: "-created",
+    });
+  } catch (error) {
+    if (error instanceof ClientResponseError) {
+      res.status(error.status).send({ error: error.message });
+      return;
+    }
+
+    res.status(500).send({ error: "Internal server error." });
+    return;
+  }
 
   if (!records) {
     res.status(404).send({ error: "No records found." });
@@ -114,7 +150,18 @@ export async function getAudioById(
     return;
   }
 
-  const record = await pb.collection("audio").getOne(req.params.id);
+  let record;
+  try {
+    record = await pb.collection("audio").getOne(req.params.id);
+  } catch (error) {
+    if (error instanceof ClientResponseError) {
+      res.status(error.status).send({ error: error.message });
+      return;
+    }
+
+    res.status(500).send({ error: "Internal server error." });
+    return;
+  }
 
   if (!record) {
     res.status(404).send({ error: "Record not found." });
@@ -126,7 +173,19 @@ export async function getAudioById(
 
 async function downloadAudio(req: Request, res: Response, next: NextFunction) {
   const { id } = req.params;
-  const record = await pb.collection("audio").getOne(id);
+
+  let record;
+  try {
+    record = await pb.collection("audio").getOne(id);
+  } catch (error) {
+    if (error instanceof ClientResponseError) {
+      res.status(error.status).send({ error: error.message });
+      return;
+    }
+
+    res.status(500).send({ error: "Internal server error." });
+    return;
+  }
 
   if (!record) {
     res.status(404).send({ error: "Record not found." });
@@ -151,8 +210,7 @@ export async function deleteAudio(
   res: Response,
   next: NextFunction
 ) {
-  let result = false;
-
+  let result;
   try {
     result = await pb.collection("audio").delete(req.params.id, {
       headers: {
