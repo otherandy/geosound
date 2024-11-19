@@ -5,6 +5,8 @@ import PocketBase, { ClientResponseError } from "pocketbase";
 import { distanceBetweenCoordinates } from "../utils";
 import type { AudioData } from "../types";
 
+import Meyda from "meyda";
+import wav from "node-wav";
 
 const pb = new PocketBase(process.env.POCKETBASE_URL);
 
@@ -42,6 +44,27 @@ export async function uploadAudio(
     return;
   }
 
+  let loudness;
+  try {
+    const decoded = wav.decode(file.data);
+    const data = decoded.channelData[0];
+    Meyda.sampleRate = decoded.sampleRate;
+    const frames = Math.floor(data.length / 2048);
+    const result = [];
+    for (let i = 0; i < frames; i++) {
+      const start = i * 2048;
+      const end = start + 2048;
+      const f = data.subarray(start, end);
+      const features = Meyda.extract(["loudness"], f);
+      const l = features!.loudness?.total;
+      if (l) result.push(l);
+    }
+    loudness = result.reduce((a, b) => a + b, 0) / result.length;
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ error: "Error extracting audio features." });
+    return;
+  }
 
   const tags = req.body.tags as string;
 
