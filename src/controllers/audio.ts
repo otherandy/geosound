@@ -32,6 +32,17 @@ export async function uploadAudio(
     return;
   }
 
+  if (latitude < -90 || latitude > 90) {
+    res.status(400).send({ error: "Latitude must be between -90 and 90." });
+    return;
+  }
+
+  if (longitude < -180 || longitude > 180) {
+    res.status(400).send({ error: "Longitude must be between -180 and 180." });
+    return;
+  }
+
+
   const tags = req.body.tags as string;
 
   const data: AudioData = {
