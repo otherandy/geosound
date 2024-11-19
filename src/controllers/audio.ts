@@ -3,6 +3,8 @@ import type { UploadedFile } from "express-fileupload";
 import PocketBase, { ClientResponseError } from "pocketbase";
 
 import { distanceBetweenCoordinates } from "../utils";
+import type { AudioData } from "../types";
+
 
 const pb = new PocketBase(process.env.POCKETBASE_URL);
 
@@ -30,13 +32,15 @@ export async function uploadAudio(
     return;
   }
 
-  const tags = req.body.tags as string[];
+  const tags = req.body.tags as string;
 
-  const data = {
+  const data: AudioData = {
     file: new File([file.data], file.name),
+    filename: file.name,
     latitude: parseFloat(latitude),
     longitude: parseFloat(longitude),
-    tags: tags === undefined ? [] : tags,
+    loudness: loudness || 0,
+    tags: tags === undefined ? [] : tags === "" ? [] : tags.split(","),
   };
 
   let record;
