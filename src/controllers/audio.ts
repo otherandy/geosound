@@ -240,7 +240,47 @@ export async function updateAudio(
   res: Response,
   next: NextFunction
 ) {
-  res.status(501).send({ error: "Not yet implemented." });
+  if (!req.body.latitude || !req.body.longitude) {
+    res.status(400).send({ error: "Latitude and longitude required." });
+    return;
+  }
+
+  if (req.body.latitude < -90 || req.body.latitude > 90) {
+    res.status(400).send({ error: "Latitude must be between -90 and 90." });
+    return;
+  }
+
+  if (req.body.longitude < -180 || req.body.longitude > 180) {
+    res.status(400).send({ error: "Longitude must be between -180 and 180." });
+    return;
+  }
+
+  const data = {
+    latitude: parseFloat(req.body.latitude),
+    longitude: parseFloat(req.body.longitude),
+    loudness: req.body.loudness || 0,
+    tags: req.body.tags === undefined ? [] : req.body.tags.split(","),
+  };
+
+  let record;
+  try {
+    record = await pb.collection("audio").update(req.params.id, data);
+  } catch (error) {
+    if (error instanceof ClientResponseError) {
+      res.status(error.status).send({ error: error.message });
+      return;
+    }
+
+    res.status(500).send({ error: "Internal server error." });
+    return;
+  }
+
+  if (!record) {
+    res.status(404).send({ error: "Record not found." });
+    return;
+  }
+
+  res.send(record);
 }
 
 export async function deleteAudio(
