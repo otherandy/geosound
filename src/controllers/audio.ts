@@ -256,10 +256,11 @@ export async function updateAudio(
   }
 
   const data = {
+    filename: req.body.filename,
     latitude: parseFloat(req.body.latitude),
     longitude: parseFloat(req.body.longitude),
-    loudness: req.body.loudness || 0,
-    tags: req.body.tags === undefined ? [] : req.body.tags.split(","),
+    loudness: req.body.loudness,
+    tags: req.body.tags.split(","),
   };
 
   let record;
