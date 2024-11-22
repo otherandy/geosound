@@ -265,7 +265,11 @@ export async function updateAudio(
 
   let record;
   try {
-    record = await pb.collection("audio").update(req.params.id, data);
+    record = await pb.collection("audio").update(req.params.id, data, {
+      headers: {
+        Authorization: req.headers.authorization as string,
+      },
+    });
   } catch (error) {
     if (error instanceof ClientResponseError) {
       res.status(error.status).send({ error: error.message });
