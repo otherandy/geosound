@@ -74,7 +74,12 @@ export async function uploadAudio(
     latitude: parseFloat(latitude),
     longitude: parseFloat(longitude),
     loudness: loudness || 0,
-    tags: tags === undefined ? [] : tags === "" ? [] : tags.split(","),
+    tags:
+      tags === undefined
+        ? []
+        : tags === ""
+        ? []
+        : tags.toLowerCase().split(","),
   };
 
   let record;
@@ -260,7 +265,7 @@ export async function updateAudio(
     latitude: parseFloat(req.body.latitude),
     longitude: parseFloat(req.body.longitude),
     loudness: req.body.loudness,
-    tags: req.body.tags.split(","),
+    tags: req.body.tags.toLowerCase().split(","),
   };
 
   let record;
